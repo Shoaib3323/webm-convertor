@@ -1,18 +1,3 @@
-# ---- Fake Web Server for Render ----
-from flask import Flask
-import threading
-
-app = Flask('')
-
-@app.route('/')
-def home():
-    return "Bot is running!"
-
-def run():
-    app.run(host='0.0.0.0', port=10000)
-
-threading.Thread(target=run).start()
-# ----------------
 import os
 import logging
 import tempfile
@@ -339,7 +324,6 @@ def main():
     try:
         application = Application.builder().token(BOT_TOKEN).build()
 
-
         # Add handlers
         application.add_handler(CommandHandler("start", start))
         application.add_handler(CommandHandler("help", help_command))
@@ -347,14 +331,30 @@ def main():
         application.add_handler(CallbackQueryHandler(button_handler))
         application.add_handler(MessageHandler(filters.VIDEO | filters.Document.VIDEO, convert_video))
 
-
         logger.info("Starting WebM Converter Bot...")
         application.run_polling()
        
     except Exception as e:
         logger.error(f"Bot failed to start: {e}")
 
+# Add this at the VERY END of your main.py file
+import http.server
+import socketserver
+import threading
+
+def start_http_server():
+    """Start a simple HTTP server to satisfy Render's port requirement"""
+    PORT = int(os.getenv('PORT', 8000))
+    handler = http.server.SimpleHTTPRequestHandler
+    with socketserver.TCPServer(("", PORT), handler) as httpd:
+        print(f"✅ HTTP server running on port {PORT}")
+        httpd.serve_forever()
 
 if __name__ == '__main__':
+    # Start HTTP server in a separate thread
+    http_thread = threading.Thread(target=start_http_server, daemon=True)
+    http_thread.start()
+    
+    # Start your bot
+    print("🤖 Starting Telegram Bot...")
     main()
-
